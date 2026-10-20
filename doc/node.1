@@ -206,6 +206,8 @@ process.permission.has('fs.read', 'custom-require-2.js'); // true
 When using the Permission Model, a virtual file system cannot be
 mounted by default: \fBvfs.mount()\fR throws \fBERR_INVALID_STATE\fR unless the
 user explicitly passes the \fB--allow-fs-vfs\fR flag when starting Node.js.
+In audit mode (\fB--permission-audit\fR), mounting is not
+refused and no message is published to the diagnostics channel.
 A mounted VFS serves paths that the file system permissions do not describe,
 so mounting one is gated on its own flag rather than on \fB--allow-fs-read\fR or
 \fB--allow-fs-write\fR.
@@ -906,6 +908,18 @@ Enable experimental support for storage inspection
 .
 .It Fl -experimental-stream-iter
 Enable the experimental \fBnode:stream/iter\fR module.
+.
+.It Fl -experimental-strip-private-modules
+By default, Node.js refuses to strip types from TypeScript files inside
+folders under a \fBnode_modules\fR path. This flag enables type stripping for
+such files when they belong to a package whose \fBpackage.json\fR contains
+\fB"private": true\fR. Files belonging to non-private packages still throw
+\fBERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING\fR.
+The limitation to private packages should never be lifted,
+as publishing packages with TypeScript sources
+is highly discouraged.
+Stripping types inside \fBnode_modules\fR is intended only
+for local development.
 .
 .It Fl -experimental-test-coverage
 When used in conjunction with the \fBnode:test\fR module, a code coverage report is
@@ -2270,6 +2284,8 @@ one is included in the list below.
 \fB--experimental-specifier-resolution\fR
 .It
 \fB--experimental-stream-iter\fR
+.It
+\fB--experimental-strip-private-modules\fR
 .It
 \fB--experimental-test-isolation\fR
 .It

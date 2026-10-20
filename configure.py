@@ -319,7 +319,7 @@ shared_optgroup.add_argument('--shared-gtest-includes',
 shared_optgroup.add_argument('--shared-gtest-libname',
     action='store',
     dest='shared_gtest_libname',
-    default='gtest',
+    default='gtest_main,gtest',
     help='alternative lib name to link to [default: %(default)s]')
 
 shared_optgroup.add_argument('--shared-gtest-libpath',
@@ -1671,7 +1671,7 @@ def check_compiler(o):
   if not options.v8_disable_temporal_support and not options.shared_temporal_capi:
     # Minimum cargo and rustc versions should match values in BUILDING.md.
     min_cargo_ver_tuple = (1, 86)
-    min_rustc_ver_tuple = (1, 86)
+    min_rustc_ver_tuple = (1, 88)
     cargo = os.environ.get('CARGO', 'cargo')
     cargo_ver = get_cargo_version(cargo)
     print_verbose(f'Detected cargo (CARGO={cargo}): {cargo_ver}')
@@ -2450,8 +2450,20 @@ def configure_ffi(o):
   configure_library('ffi', o, pkgname='libffi')
 
 def configure_quic(o):
+  if options.experimental_quic and options.without_ssl:
+    warn('--experimental-quic is incompatible with --without-ssl')
   o['variables']['node_use_quic'] = b(options.experimental_quic and
                                       not options.without_ssl)
+
+  if not options.experimental_quic:
+    for lib in ['nghttp3', 'ngtcp2']:
+      shared_lib = 'shared_' + lib
+      if getattr(options, shared_lib):
+        warn(f'--shared-{lib} requires --experimental-quic')
+    return
+
+  configure_library('nghttp3', output, pkgname='libnghttp3')
+  configure_library('ngtcp2', output, pkgname='libngtcp2')
 
 def configure_dtls(o):
   o['variables']['node_use_dtls'] = b(options.experimental_dtls and
@@ -2911,6 +2923,7 @@ configure_library('abseil', output, pkgname=[
   'absl_cleanup',
   'absl_config',
   'absl_cord',
+  'absl_crc32c',
   'absl_core_headers',
   'absl_die_if_null',
   'absl_dynamic_annotations',
@@ -2968,14 +2981,12 @@ configure_library('brotli', output, pkgname=['libbrotlidec', 'libbrotlienc'])
 configure_library('cares', output, pkgname='libcares')
 # Only cctest uses gtest; keep it out of the node binary's link line.
 output['variables']['node_shared_gtest_libraries'] = []
-configure_library('gtest', output, libraries_key='node_shared_gtest_libraries')
+configure_library('gtest', output, ['gtest_main', 'gtest'], 'node_shared_gtest_libraries')
 configure_library('hdr_histogram', output)
 configure_library('highway', output, pkgname='libhwy')
 configure_library('merve', output)
 configure_library('nbytes', output)
 configure_library('nghttp2', output, pkgname='libnghttp2')
-configure_library('nghttp3', output, pkgname='libnghttp3')
-configure_library('ngtcp2', output, pkgname='libngtcp2')
 configure_lief(output);
 configure_perfetto(output);
 configure_sqlite(output);

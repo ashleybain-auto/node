@@ -1,10 +1,10 @@
 arg:
 let
   repo = "https://github.com/NixOS/nixpkgs";
-  rev = "8edc0c72e3a38faf5434e40d1f19431125fe4b30";
+  rev = "f20cd90e28fe0403873f473b29e42662cd86e8c4";
   nixpkgs = import (builtins.fetchTarball {
     url = "${repo}/archive/${rev}.tar.gz";
-    sha256 = "0cwxl7z1x0ad9z8lcljl390y9lk73ql4fvx5lysy4s9c6723p8xn";
+    sha256 = "1vv6crfchmhjk5j61zgajggc3cgkalak2rvng07g41cvlcf6ldhj";
   }) arg;
 in
 # Unstable channel no longer supports Intel architecture for macOS. We can use the 26.05 channel
@@ -15,6 +15,12 @@ if builtins.currentSystem == "x86_64-darwin" then
 else
   nixpkgs
   // {
+    # OpenSSL 1.1.x and 3.0.x were removed from unstable, we want to keep testing with it
+    inherit (import ./pkgs-26.05.nix arg)
+      openssl_1_1
+      openssl_3
+      ;
+
     # TODO: remove pin once https://github.com/mozilla/sccache/issues/2869 is resolved
     sccache = nixpkgs.callPackage (builtins.fetchurl {
       url = "${repo}/raw/aff8a0b28396750446e5537a96461bc4facdb287/pkgs/by-name/sc/sccache/package.nix";
